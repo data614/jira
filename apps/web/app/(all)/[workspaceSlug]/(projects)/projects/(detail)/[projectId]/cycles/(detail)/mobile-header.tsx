@@ -27,8 +27,10 @@ import { useLabel } from "@/hooks/store/use-label";
 import { useMember } from "@/hooks/store/use-member";
 import { useProject } from "@/hooks/store/use-project";
 import { useProjectState } from "@/hooks/store/use-project-state";
+import { observer } from "mobx-react";
 
-export const CycleIssuesMobileHeader = () => {
+
+const CycleIssuesMobileHeaderComponent: React.FC = () => {
   // i18n
   const { t } = useTranslation();
 
@@ -219,3 +221,5 @@ export const CycleIssuesMobileHeader = () => {
     </>
   );
 };
+
+export const CycleIssuesMobileHeader = observer(CycleIssuesMobileHeaderComponent);
