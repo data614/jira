@@ -4,4 +4,7 @@ export default defineConfig({
   entry: ["src/server.ts"],
   outDir: "dist",
   format: ["esm", "cjs"],
+  dts: false,
+  clean: true,
+  sourcemap: false,
 });
