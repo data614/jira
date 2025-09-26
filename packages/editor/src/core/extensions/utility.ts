@@ -16,6 +16,7 @@ type TActiveDropbarExtensions =
   | CORE_EXTENSIONS.EMOJI
   | CORE_EXTENSIONS.SLASH_COMMANDS
   | CORE_EXTENSIONS.TABLE
+  | "bubble-menu"
   | TAdditionalActiveDropbarExtensions;
 
 declare module "@tiptap/core" {
@@ -34,6 +35,9 @@ declare module "@tiptap/core" {
       addActiveDropbarExtension: (extension: TActiveDropbarExtensions) => () => void;
       removeActiveDropbarExtension: (extension: TActiveDropbarExtensions) => () => void;
     };
+  }
+  interface Storage {
+    [CORE_EXTENSIONS.UTILITY]: UtilityExtensionStorage;
   }
 }
 
