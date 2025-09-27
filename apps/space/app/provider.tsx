@@ -4,6 +4,7 @@ import { FC, ReactNode } from "react";
 // components
 import { TranslationProvider } from "@plane/i18n";
 import { InstanceProvider } from "@/lib/instance-provider";
+import { MonitoringProvider } from "@/lib/monitoring";
 import { StoreProvider } from "@/lib/store-provider";
 import { ToastProvider } from "@/lib/toast-provider";
 
@@ -18,7 +19,9 @@ export const AppProvider: FC<IAppProvider> = (props) => {
     <StoreProvider>
       <TranslationProvider>
         <ToastProvider>
-          <InstanceProvider>{children}</InstanceProvider>
+          <MonitoringProvider>
+            <InstanceProvider>{children}</InstanceProvider>
+          </MonitoringProvider>
         </ToastProvider>
       </TranslationProvider>
     </StoreProvider>
