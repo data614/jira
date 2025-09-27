@@ -10,6 +10,7 @@ from celery.schedules import crontab
 
 # Module imports
 from plane.settings.redis import redis_instance
+from plane.utils.telemetry import init_tracer
 
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "plane.settings.production")
@@ -21,6 +22,14 @@ app = Celery("plane")
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.
 app.config_from_object("django.conf:settings", namespace="CELERY")
+
+try:
+    init_tracer()
+except Exception as exc:  # pragma: no cover - defensive logging
+    logging.getLogger("plane.observability").warning(
+        "Failed to initialize backend APM for Celery worker.",
+        extra={"error": str(exc), "channel": "observability", "event": "apm_startup_failed"},
+    )
 
 app.conf.beat_schedule = {
     # Intra day recurring jobs
