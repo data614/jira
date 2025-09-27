@@ -1,5 +1,9 @@
 "use server";
 
+import { logger } from "@plane/logger";
+
+import { fetchAnchorMetadata } from "@/lib/server/fetch-anchor-metadata";
+
 import { IssuesClientLayout } from "./client-layout";
 
 type Props = {
@@ -14,32 +18,44 @@ export async function generateMetadata({ params }: Props) {
   const DEFAULT_TITLE = "Plane";
   const DEFAULT_DESCRIPTION = "Made with Plane, an AI-powered work management platform with publishing capabilities.";
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/public/anchor/${anchor}/meta/`);
-    const data = await response.json();
-    return {
-      title: data?.name || DEFAULT_TITLE,
-      description: data?.description || DEFAULT_DESCRIPTION,
-      openGraph: {
-        title: data?.name || DEFAULT_TITLE,
-        description: data?.description || DEFAULT_DESCRIPTION,
-        type: "website",
-        images: [
+    const data = await fetchAnchorMetadata(anchor);
+    const title = data?.name || DEFAULT_TITLE;
+    const description = data?.description || DEFAULT_DESCRIPTION;
+    const coverImage = data?.cover_image;
+
+    const openGraphImages = coverImage
+      ? [
           {
-            url: data?.cover_image,
+            url: coverImage,
             width: 800,
             height: 600,
-            alt: data?.name || DEFAULT_TITLE,
+            alt: title,
           },
-        ],
+        ]
+      : [];
+
+    const twitterImages = coverImage ? [coverImage] : undefined;
+
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        type: "website",
+        images: openGraphImages,
       },
       twitter: {
         card: "summary_large_image",
-        title: data?.name || DEFAULT_TITLE,
-        description: data?.description || DEFAULT_DESCRIPTION,
-        images: [data?.cover_image],
+        title,
+        description,
+        images: twitterImages,
       },
     };
-  } catch {
+  } catch (error) {
+    logger.error(
+      `[metadata] Falling back to defaults for anchor "${anchor}": ${error instanceof Error ? error.message : String(error)}`
+    );
     return { title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION };
   }
 }

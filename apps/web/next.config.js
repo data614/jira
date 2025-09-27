@@ -3,6 +3,8 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require("dotenv").config({ path: ".env" });
 
+const { buildExternalRewrite } = require("./config/url-utils");
+
 const nextConfig = {
   trailingSlash: true,
   reactStrictMode: false,
@@ -105,6 +107,22 @@ const nextConfig = {
         destination: `${posthogHost}/:path*`,
       },
     ];
+
+    const apiDestinationBase = buildExternalRewrite(
+      process.env.NEXT_PUBLIC_API_BASE_URL,
+      process.env.NEXT_PUBLIC_API_BASE_PATH
+    );
+
+    if (apiDestinationBase) {
+      rewrites.push({
+        source: "/api/:path*",
+        destination: `${apiDestinationBase}/:path*`,
+      });
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn("Skipping /api rewrite because NEXT_PUBLIC_API_BASE_URL is not defined.");
+    }
+
     if (process.env.NEXT_PUBLIC_ADMIN_BASE_URL || process.env.NEXT_PUBLIC_ADMIN_BASE_PATH) {
       const ADMIN_BASE_URL = process.env.NEXT_PUBLIC_ADMIN_BASE_URL || "";
       const ADMIN_BASE_PATH = process.env.NEXT_PUBLIC_ADMIN_BASE_PATH || "";
