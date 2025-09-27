@@ -43,11 +43,24 @@ services:
         DOCKER_BUILDKIT: 1
     restart: always
     command: ./bin/docker-entrypoint-api.sh
+    volumes:
+      - logs_api:/code/plane/logs
     env_file:
       - ./apps/api/.env
     depends_on:
       - plane-db
       - plane-redis
+      - plane-mq
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c 'import sys, urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/health/\")'",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   worker:
     container_name: bgworker
@@ -58,12 +71,15 @@ services:
         DOCKER_BUILDKIT: 1
     restart: always
     command: ./bin/docker-entrypoint-worker.sh
+    volumes:
+      - logs_worker:/code/plane/logs
     env_file:
       - ./apps/api/.env
     depends_on:
       - api
       - plane-db
       - plane-redis
+      - plane-mq
 
   beat-worker:
     container_name: beatworker
@@ -74,12 +90,15 @@ services:
         DOCKER_BUILDKIT: 1
     restart: always
     command: ./bin/docker-entrypoint-beat.sh
+    volumes:
+      - logs_beat_worker:/code/plane/logs
     env_file:
       - ./apps/api/.env
     depends_on:
       - api
       - plane-db
       - plane-redis
+      - plane-mq
 
   migrator:
     container_name: plane-migrator
@@ -90,11 +109,14 @@ services:
         DOCKER_BUILDKIT: 1
     restart: no
     command: ./bin/docker-entrypoint-migrator.sh
+    volumes:
+      - logs_migrator:/code/plane/logs
     env_file:
       - ./apps/api/.env
     depends_on:
       - plane-db
       - plane-redis
+      - plane-mq
 
   live:
     container_name: plane-live
@@ -174,3 +196,7 @@ volumes:
   redisdata:
   uploads:
   rabbitmq_data:
+  logs_api:
+  logs_worker:
+  logs_beat_worker:
+  logs_migrator:
