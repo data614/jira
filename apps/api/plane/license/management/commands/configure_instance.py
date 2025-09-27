@@ -6,6 +6,11 @@ from django.core.management.base import BaseCommand, CommandError
 
 # Module imports
 from plane.license.models import InstanceConfiguration
+from plane.license.utils.email_config import (
+    DEFAULT_SMTP_PORT,
+    SENDGRID_DEFAULT_HOST,
+    SENDGRID_DEFAULT_USERNAME,
+)
 
 
 class Command(BaseCommand):
@@ -134,6 +139,56 @@ class Command(BaseCommand):
             {
                 "key": "EMAIL_USE_SSL",
                 "value": os.environ.get("EMAIL_USE_SSL", "0"),
+                "category": "SMTP",
+                "is_encrypted": False,
+            },
+            {
+                "key": "SENDGRID_API_KEY",
+                "value": os.environ.get("SENDGRID_API_KEY", ""),
+                "category": "SMTP",
+                "is_encrypted": True,
+            },
+            {
+                "key": "SENDGRID_SMTP_HOST",
+                "value": os.environ.get(
+                    "SENDGRID_SMTP_HOST", SENDGRID_DEFAULT_HOST
+                ),
+                "category": "SMTP",
+                "is_encrypted": False,
+            },
+            {
+                "key": "SENDGRID_SMTP_PORT",
+                "value": os.environ.get(
+                    "SENDGRID_SMTP_PORT", str(DEFAULT_SMTP_PORT)
+                ),
+                "category": "SMTP",
+                "is_encrypted": False,
+            },
+            {
+                "key": "SENDGRID_SMTP_USERNAME",
+                "value": os.environ.get(
+                    "SENDGRID_SMTP_USERNAME", SENDGRID_DEFAULT_USERNAME
+                ),
+                "category": "SMTP",
+                "is_encrypted": False,
+            },
+            {
+                "key": "SENDGRID_SMTP_USE_TLS",
+                "value": os.environ.get("SENDGRID_SMTP_USE_TLS", "1"),
+                "category": "SMTP",
+                "is_encrypted": False,
+            },
+            {
+                "key": "SENDGRID_SMTP_USE_SSL",
+                "value": os.environ.get("SENDGRID_SMTP_USE_SSL", "0"),
+                "category": "SMTP",
+                "is_encrypted": False,
+            },
+            {
+                "key": "SENDGRID_FROM_EMAIL",
+                "value": os.environ.get(
+                    "SENDGRID_FROM_EMAIL", os.environ.get("EMAIL_FROM", "")
+                ),
                 "category": "SMTP",
                 "is_encrypted": False,
             },

@@ -19,6 +19,7 @@ from plane.authentication.adapter.error import (
     AUTHENTICATION_ERROR_CODES,
 )
 from plane.authentication.rate_limit import AuthenticationThrottle
+from plane.license.utils.email_config import is_smtp_configured
 from plane.license.utils.instance_value import get_configuration_value
 
 
@@ -37,17 +38,21 @@ class EmailCheckEndpoint(APIView):
             )
             return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
-        (EMAIL_HOST, ENABLE_MAGIC_LINK_LOGIN) = get_configuration_value(
+        (EMAIL_HOST, ENABLE_MAGIC_LINK_LOGIN, SENDGRID_API_KEY) = get_configuration_value(
             [
                 {"key": "EMAIL_HOST", "default": os.environ.get("EMAIL_HOST", "")},
                 {
                     "key": "ENABLE_MAGIC_LINK_LOGIN",
                     "default": os.environ.get("ENABLE_MAGIC_LINK_LOGIN", "1"),
                 },
+                {
+                    "key": "SENDGRID_API_KEY",
+                    "default": os.environ.get("SENDGRID_API_KEY", ""),
+                },
             ]
         )
 
-        smtp_configured = bool(EMAIL_HOST)
+        smtp_configured = is_smtp_configured(EMAIL_HOST, SENDGRID_API_KEY)
         is_magic_login_enabled = ENABLE_MAGIC_LINK_LOGIN == "1"
 
         email = request.data.get("email", False)
