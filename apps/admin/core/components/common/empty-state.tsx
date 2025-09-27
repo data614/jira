@@ -1,15 +1,15 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 import { Button } from "@plane/ui";
 
 type Props = {
   title: string;
   description?: React.ReactNode;
-  image?: any;
+  image?: StaticImageData | string;
   primaryButton?: {
-    icon?: any;
+    icon?: React.ReactNode;
     text: string;
     onClick: () => void;
   };

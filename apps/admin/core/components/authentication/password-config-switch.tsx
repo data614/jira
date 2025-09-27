@@ -20,14 +20,13 @@ export const PasswordLoginConfiguration: React.FC<Props> = observer((props) => {
   const { formattedConfig } = useInstance();
   // derived values
   const enableEmailPassword = formattedConfig?.ENABLE_EMAIL_PASSWORD ?? "";
+  const isPasswordEnabled = Boolean(parseInt(enableEmailPassword));
 
   return (
     <ToggleSwitch
-      value={Boolean(parseInt(enableEmailPassword))}
+      value={isPasswordEnabled}
       onChange={() => {
-        Boolean(parseInt(enableEmailPassword)) === true
-          ? updateConfig("ENABLE_EMAIL_PASSWORD", "0")
-          : updateConfig("ENABLE_EMAIL_PASSWORD", "1");
+        updateConfig("ENABLE_EMAIL_PASSWORD", isPasswordEnabled ? "0" : "1");
       }}
       size="sm"
       disabled={disabled}

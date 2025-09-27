@@ -17,7 +17,7 @@ import { CoreRootStore } from "@/store/root.store";
 export interface IInstanceStore {
   // issues
   isLoading: boolean;
-  error: any;
+  error: InstanceStoreError | null;
   instanceStatus: TInstanceStatus | undefined;
   instance: IInstance | undefined;
   config: IInstanceConfig | undefined;
@@ -26,7 +26,7 @@ export interface IInstanceStore {
   // computed
   formattedConfig: IFormattedInstanceConfiguration | undefined;
   // action
-  hydrate: (data: IInstanceInfo) => void;
+  hydrate: (data: IInstanceInfo | undefined) => void;
   fetchInstanceInfo: () => Promise<IInstanceInfo | undefined>;
   updateInstanceInfo: (data: Partial<IInstance>) => Promise<IInstance | undefined>;
   fetchInstanceAdmins: () => Promise<IInstanceAdmin[] | undefined>;
@@ -34,16 +34,18 @@ export interface IInstanceStore {
   updateInstanceConfigurations: (data: Partial<IFormattedInstanceConfiguration>) => Promise<IInstanceConfiguration[]>;
 }
 
+type InstanceStoreError = { message: string };
+
 export class InstanceStore implements IInstanceStore {
   isLoading: boolean = true;
-  error: any = undefined;
+  error: InstanceStoreError | null = null;
   instanceStatus: TInstanceStatus | undefined = undefined;
   instance: IInstance | undefined = undefined;
   config: IInstanceConfig | undefined = undefined;
   instanceAdmins: IInstanceAdmin[] | undefined = undefined;
   instanceConfigurations: IInstanceConfiguration[] | undefined = undefined;
   // service
-  instanceService;
+  private readonly instanceService: InstanceService;
 
   constructor(private store: CoreRootStore) {
     makeObservable(this, {
@@ -68,7 +70,7 @@ export class InstanceStore implements IInstanceStore {
     this.instanceService = new InstanceService();
   }
 
-  hydrate = (data: IInstanceInfo) => {
+  hydrate = (data?: IInstanceInfo) => {
     if (data) {
       this.instance = data.instance;
       this.config = data.config;
@@ -94,7 +96,7 @@ export class InstanceStore implements IInstanceStore {
   fetchInstanceInfo = async () => {
     try {
       if (this.instance === undefined) this.isLoading = true;
-      this.error = undefined;
+      this.error = null;
       const instanceInfo = await this.instanceService.info();
       // handling the new user popup toggle
       if (this.instance === undefined && !instanceInfo?.instance?.workspaces_exist)

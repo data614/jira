@@ -29,7 +29,7 @@ export class WorkspaceStore implements IWorkspaceStore {
   workspaces: Record<string, IWorkspace> = {};
   paginationInfo: TPaginationInfo | undefined = undefined;
   // services
-  instanceWorkspaceService;
+  private readonly instanceWorkspaceService: InstanceWorkspaceService;
 
   constructor(private store: CoreRootStore) {
     makeObservable(this, {

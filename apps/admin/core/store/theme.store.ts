@@ -6,10 +6,10 @@ type TTheme = "dark" | "light";
 export interface IThemeStore {
   // observables
   isNewUserPopup: boolean;
-  theme: string | undefined;
+  theme: TTheme | undefined;
   isSidebarCollapsed: boolean | undefined;
   // actions
-  hydrate: (data: any) => void;
+  hydrate: (data: TTheme | undefined) => void;
   toggleNewUserPopup: () => void;
   toggleSidebar: (collapsed: boolean) => void;
   setTheme: (currentTheme: TTheme) => void;
@@ -19,7 +19,7 @@ export class ThemeStore implements IThemeStore {
   // observables
   isNewUserPopup: boolean = false;
   isSidebarCollapsed: boolean | undefined = undefined;
-  theme: string | undefined = undefined;
+  theme: TTheme | undefined = undefined;
 
   constructor(private store: CoreRootStore) {
     makeObservable(this, {
@@ -34,7 +34,7 @@ export class ThemeStore implements IThemeStore {
     });
   }
 
-  hydrate = (data: any) => {
+  hydrate = (data?: TTheme) => {
     if (data) this.theme = data;
   };
 

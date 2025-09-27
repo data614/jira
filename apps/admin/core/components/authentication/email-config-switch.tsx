@@ -20,14 +20,13 @@ export const EmailCodesConfiguration: React.FC<Props> = observer((props) => {
   const { formattedConfig } = useInstance();
   // derived values
   const enableMagicLogin = formattedConfig?.ENABLE_MAGIC_LINK_LOGIN ?? "";
+  const isMagicLinkEnabled = Boolean(parseInt(enableMagicLogin));
 
   return (
     <ToggleSwitch
-      value={Boolean(parseInt(enableMagicLogin))}
+      value={isMagicLinkEnabled}
       onChange={() => {
-        Boolean(parseInt(enableMagicLogin)) === true
-          ? updateConfig("ENABLE_MAGIC_LINK_LOGIN", "0")
-          : updateConfig("ENABLE_MAGIC_LINK_LOGIN", "1");
+        updateConfig("ENABLE_MAGIC_LINK_LOGIN", isMagicLinkEnabled ? "0" : "1");
       }}
       size="sm"
       disabled={disabled}

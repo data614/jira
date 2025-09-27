@@ -21,6 +21,7 @@ const InstanceGoogleAuthenticationPage = observer(() => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   // config
   const enableGoogleConfig = formattedConfig?.IS_GOOGLE_ENABLED ?? "";
+  const isGoogleEnabled = Boolean(parseInt(enableGoogleConfig));
 
   useSWR("INSTANCE_CONFIGURATIONS", () => fetchInstanceConfigurations());
 
@@ -65,11 +66,9 @@ const InstanceGoogleAuthenticationPage = observer(() => {
             icon={<Image src={GoogleLogo} height={24} width={24} alt="Google Logo" />}
             config={
               <ToggleSwitch
-                value={Boolean(parseInt(enableGoogleConfig))}
+                value={isGoogleEnabled}
                 onChange={() => {
-                  Boolean(parseInt(enableGoogleConfig)) === true
-                    ? updateConfig("IS_GOOGLE_ENABLED", "0")
-                    : updateConfig("IS_GOOGLE_ENABLED", "1");
+                  updateConfig("IS_GOOGLE_ENABLED", isGoogleEnabled ? "0" : "1");
                 }}
                 size="sm"
                 disabled={isSubmitting || !formattedConfig}
