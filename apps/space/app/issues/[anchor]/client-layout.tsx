@@ -8,6 +8,8 @@ import { IssuesNavbarRoot } from "@/components/issues";
 import { SomethingWentWrongError } from "@/components/issues/issue-layouts/error";
 // hooks
 import { useIssueFilter, usePublish, usePublishList } from "@/hooks/store";
+// monitoring
+import { appMonitor } from "@/lib/monitoring";
 
 type Props = {
   children: React.ReactNode;
@@ -36,7 +38,14 @@ export const IssuesClientLayout = observer((props: Props) => {
             });
           }
         }
-      : null
+      : null,
+    {
+      onError: (fetchError) =>
+        appMonitor.captureException(fetchError, {
+          feature: "public-issues-layout",
+          anchor,
+        }),
+    }
   );
 
   if (!publishSettings && !error) return <LogoSpinner />;

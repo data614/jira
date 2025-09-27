@@ -10,6 +10,8 @@ import { usePublish, usePublishList } from "@/hooks/store";
 // Plane web
 import { ViewNavbarRoot } from "@/plane-web/components/navbar";
 import { useView } from "@/plane-web/hooks/store";
+// monitoring
+import { appMonitor } from "@/lib/monitoring";
 
 type Props = {
   children: React.ReactNode;
@@ -37,7 +39,14 @@ const IssuesLayout = observer((props: Props) => {
           promises.push(fetchViewDetails(anchor));
           await Promise.all(promises);
         }
-      : null
+      : null,
+    {
+      onError: (fetchError) =>
+        appMonitor.captureException(fetchError, {
+          feature: "public-view-layout",
+          anchor,
+        }),
+    }
   );
 
   if (error) return <SomethingWentWrongError />;
