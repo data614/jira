@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-server:
+    name: Lint Django server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system deps (psycopg2, etc.)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev gcc
+
+      - name: Locate server directory
+        id: srvdir
+        run: |
+          if [ -d "apiserver" ]; then echo "dir=apiserver" >> $GITHUB_OUTPUT
+          elif [ -d "apps/server" ]; then echo "dir=apps/server" >> $GITHUB_OUTPUT
+          else echo "Neither apiserver nor apps/server exists"; exit 1; fi
+
+      - name: Install server dependencies
+        working-directory: ${{ steps.srvdir.outputs.dir }}
+        run: |
+          if [ -f requirements.txt ]; then REQS=requirements.txt;
+          elif [ -f requirements-dev.txt ]; then REQS=requirements-dev.txt;
+          elif [ -f requirements/base.txt ]; then REQS=requirements/base.txt;
+          else echo "No requirements file found"; exit 1; fi
+          python -m pip install --upgrade pip
+          pip install -r "$REQS"
+
+      - name: Lint apps/server (pylint)
+        working-directory: ${{ steps.srvdir.outputs.dir }}
+        run: |
+          python -m pip install pylint pylint-django || true
+          # Lint common server src roots defensively
+          paths=""
+          for p in server plane apiserver apps .; do
+            [ -d "$p" ] && paths="$paths $p"
+          done
+          if [ -z "$paths" ]; then paths="."; fi
+          pylint --exit-zero $paths
+
+  lint-frontend:
+    name: Lint ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: web
+            dir: apps/web
+          - app: space
+            dir: apps/space
+          - app: admin
+            dir: apps/admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify directory exists
+        run: |
+          if [ ! -d "${{ matrix.dir }}" ]; then
+            echo "::warning title=Skip::${{ matrix.dir }} not found – skipping."
+            echo "skip=true" >> $GITHUB_ENV
+          fi
+
+      - name: Setup Node.js
+        if: env.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install deps (workspaces)
+        if: env.skip != 'true'
+        run: |
+          corepack enable
+          yarn --version
+          yarn install --immutable
+
+      - name: Run lint (script or fallback)
+        if: env.skip != 'true'
+        run: |
+          set -e
+          PKG_DIR="${{ matrix.dir }}"
+          # prefer package script if present
+          if jq -e '.scripts.lint' < "$PKG_DIR/package.json" >/dev/null 2>&1; then
+            yarn --cwd "$PKG_DIR" run lint
+          else
+            echo "No 'lint' script in $PKG_DIR/package.json – running ESLint directly"
+            # Try local eslint first (monorepo), then fallback to npx
+            if [ -f "node_modules/.bin/eslint" ]; then
+              node node_modules/.bin/eslint "$PKG_DIR" --max-warnings=0
+            else
+              npx --yes eslint "$PKG_DIR" --max-warnings=0
+            fi
+          fi
+
+  build-frontend:
+    name: Build ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: web
+            dir: apps/web
+          - app: space
+            dir: apps/space
+          - app: admin
+            dir: apps/admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify directory exists
+        run: |
+          if [ ! -d "${{ matrix.dir }}" ]; then
+            echo "::warning title=Skip::${{ matrix.dir }} not found – skipping."
+            echo "skip=true" >> $GITHUB_ENV
+          fi
+
+      - name: Setup Node.js
+        if: env.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install deps (workspaces)
+        if: env.skip != 'true'
+        run: |
+          corepack enable
+          yarn install --immutable
+
+      - name: Build
+        if: env.skip != 'true'
+        run: |
+          PKG_DIR="${{ matrix.dir }}"
+          if jq -e '.scripts.build' < "$PKG_DIR/package.json" >/dev/null 2>&1; then
+            yarn --cwd "$PKG_DIR" run build
+          else
+            echo "::warning title=Build skipped::No build script in $PKG_DIR/package.json"
+          fi
