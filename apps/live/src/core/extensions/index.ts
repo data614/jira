@@ -7,6 +7,7 @@ import { Logger } from "@hocuspocus/extension-logger";
 import { Redis as HocusPocusRedis } from "@hocuspocus/extension-redis";
 // core helpers and utilities
 import { manualLogger } from "@/core/helpers/logger.js";
+import { monitoringService } from "@/core/services/monitoring-service.js";
 import { getRedisUrl } from "@/core/lib/utils/redis-url.js";
 // core libraries
 import { fetchPageDescriptionBinary, updatePageDescription } from "@/core/lib/page.js";
@@ -48,6 +49,7 @@ export const getExtensions: () => Promise<Extension[]> = async () => {
             resolve(fetchedData);
           } catch (error) {
             manualLogger.error("Error in fetching document", error);
+            monitoringService.recordIncident("database:fetch", error);
           }
         });
       },
@@ -74,6 +76,7 @@ export const getExtensions: () => Promise<Extension[]> = async () => {
             }
           } catch (error) {
             manualLogger.error("Error in updating document:", error);
+            monitoringService.recordIncident("database:store", error);
           }
         });
       },
@@ -84,6 +87,7 @@ export const getExtensions: () => Promise<Extension[]> = async () => {
 
   if (redisUrl) {
     try {
+      monitoringService.markRedisConnecting();
       const redisClient = new Redis(redisUrl);
 
       await new Promise<void>((resolve, reject) => {
@@ -95,12 +99,14 @@ export const getExtensions: () => Promise<Extension[]> = async () => {
             `Redis Client wasn't able to connect, continuing without Redis (you won't be able to sync data between multiple plane live servers)`,
             error
           );
+          monitoringService.markRedisError(error);
           reject(error);
         });
 
         redisClient.on("ready", () => {
           extensions.push(new HocusPocusRedis({ redis: redisClient }));
           manualLogger.info("Redis Client connected ✅");
+          monitoringService.markRedisConnected();
           resolve();
         });
       });
@@ -109,11 +115,13 @@ export const getExtensions: () => Promise<Extension[]> = async () => {
         `Redis Client wasn't able to connect, continuing without Redis (you won't be able to sync data between multiple plane live servers)`,
         error
       );
+      monitoringService.markRedisError(error);
     }
   } else {
     manualLogger.warn(
       "Redis URL is not set, continuing without Redis (you won't be able to sync data between multiple plane live servers)"
     );
+    monitoringService.markRedisDisabled();
   }
 
   return extensions;

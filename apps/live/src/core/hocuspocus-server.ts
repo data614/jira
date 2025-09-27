@@ -9,12 +9,24 @@ import { DocumentCollaborativeEvents, TDocumentEventsServer } from "@plane/edito
 import { TUserDetails } from "@plane/editor";
 // types
 import { type HocusPocusServerContext } from "@/core/types/common.js";
+import { monitoringService } from "@/core/services/monitoring-service.js";
 
 export const getHocusPocusServer = async () => {
   const extensions = await getExtensions();
   const serverName = process.env.HOSTNAME || uuidv4();
+  monitoringService.setServerName(serverName);
   return Server.configure({
     name: serverName,
+    async onConnect({ documentName, connection }) {
+      monitoringService.recordCollaborativeConnection({
+        documentName,
+        requiresAuthentication: connection.requiresAuthentication,
+        isAuthenticated: connection.isAuthenticated,
+      });
+    },
+    async onDisconnect({ documentName }) {
+      monitoringService.recordCollaborativeDisconnection(documentName);
+    },
     onAuthenticate: async ({
       requestHeaders,
       context,
@@ -56,12 +68,22 @@ export const getHocusPocusServer = async () => {
         throw Error("Authentication unsuccessful!");
       }
     },
-    async onStateless({ payload, document }) {
+    async onStateless({ payload, document, documentName }) {
       // broadcast the client event (derived from the server event) to all the clients so that they can update their state
+      monitoringService.recordStatelessEvent(documentName);
       const response = DocumentCollaborativeEvents[payload as TDocumentEventsServer].client;
       if (response) {
         document.broadcastStateless(response);
       }
+    },
+    async onChange({ documentName }) {
+      monitoringService.recordDocumentChange(documentName);
+    },
+    async onAwarenessUpdate({ documentName }) {
+      monitoringService.recordAwarenessUpdate(documentName);
+    },
+    async onDestroy() {
+      monitoringService.resetCollaborativeState();
     },
     extensions,
     debounce: 10000,
