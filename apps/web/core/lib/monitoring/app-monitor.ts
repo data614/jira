@@ -1,54 +1,13 @@
 "use client";
 
 import { captureError } from "@/helpers/event-tracker.helper";
+import { type NormalizedError, normalizeError } from "@/lib/monitoring/error-normalizer";
 
 type ErrorContext = Record<string, unknown>;
-
-type NormalizedError = {
-  name?: string;
-  message: string;
-  stack?: string;
-  cause?: unknown;
-};
 
 type EventSource = "error" | "unhandledrejection" | "manual";
 
 const DEDUPLICATION_WINDOW = 10_000; // 10 seconds
-
-const stringifyUnknown = (value: unknown): string => {
-  if (typeof value === "string") return value;
-  if (value instanceof Error) return value.message;
-  try {
-    return JSON.stringify(value);
-  } catch (error) {
-    return String(value);
-  }
-};
-
-const normalizeError = (error: unknown): NormalizedError => {
-  if (error instanceof Error) {
-    const normalized: NormalizedError = {
-      name: error.name,
-      message: error.message,
-      stack: error.stack ?? undefined,
-    };
-    if ((error as { cause?: unknown }).cause) {
-      normalized.cause = stringifyUnknown((error as { cause?: unknown }).cause);
-    }
-    return normalized;
-  }
-
-  if (typeof error === "string") {
-    return { message: error };
-  }
-
-  if (typeof error === "object" && error !== null) {
-    const serialized = stringifyUnknown(error);
-    return { message: serialized };
-  }
-
-  return { message: String(error) };
-};
 
 const resolveKey = (error: NormalizedError): string => {
   const stackFragment = error.stack ? error.stack.split("\n")[0] : "";
