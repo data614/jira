@@ -155,6 +155,7 @@ See [CONTRIBUTING](./CONTRIBUTING.md)
 - Verify external dependencies (PostgreSQL, Redis, and RabbitMQ) with `python manage.py monitor_services`. The command exits non-zero when a dependency is unreachable, making it safe for CI and deployment hooks.
 - Automate periodic health checks with [`scripts/monitoring/service_healthcheck.py`](scripts/monitoring/service_healthcheck.py), which wraps the management command and emits structured logs for observability platforms.
 - Follow the [Railway deployment blueprint](docs/deployment/railway.md) when containerizing the Django API with managed backing services—it's aligned with the production Dockerfile and keeps the existing application interface intact.
+- When deploying the Next.js workspace to Netlify, follow the [Netlify deployment guide](docs/deployment/netlify.md) to connect GitHub, target the correct base directory, enforce Node.js 18+, and provision required environment variables without diverging from the current interface.
 
 ## 📝 Documentation
 Explore Plane's [product documentation](https://docs.plane.so/) and [developer documentation](https://developers.plane.so/) to learn about features, setup, and usage.
