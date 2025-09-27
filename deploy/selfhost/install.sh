@@ -150,6 +150,52 @@ function updateEnvFile() {
     fi
 }
 
+function normalizeBoolean() {
+    local value=$(echo "${1:-}" | tr '[:upper:]' '[:lower:]')
+    case "$value" in
+        1|true|yes|on) echo "true" ;;
+        *) echo "false" ;;
+    esac
+}
+
+function ensureFrontendBaseUrl() {
+    local file=$1
+    local ssl=$(getEnvValue "SSL" "$file")
+    local app_domain=$(getEnvValue "APP_DOMAIN" "$file")
+    local current=$(getEnvValue "NEXT_PUBLIC_API_BASE_URL" "$file")
+
+    if [ -z "$app_domain" ]; then
+        app_domain="localhost"
+    fi
+
+    local protocol="http"
+    if [ "$(normalizeBoolean "$ssl")" == "true" ]; then
+        protocol="https"
+    fi
+
+    local computed_base="${protocol}://${app_domain}"
+    local sanitized_computed="${computed_base%/}"
+    local http_default="http://${app_domain}"
+    local https_default="https://${app_domain}"
+    local sanitized_http="${http_default%/}"
+    local sanitized_https="${https_default%/}"
+    local sanitized_current="${current%/}"
+    local should_update="false"
+
+    if [ -z "$current" ]; then
+        should_update="true"
+    elif [ "$sanitized_current" != "$sanitized_computed" ]; then
+        if [ "$sanitized_current" == "$sanitized_http" ] || [ "$sanitized_current" == "$sanitized_https" ]; then
+            should_update="true"
+        fi
+    fi
+
+    if [ "$should_update" == "true" ]; then
+        updateEnvFile "NEXT_PUBLIC_API_BASE_URL" "$computed_base" "$file"
+        echo "    Updated NEXT_PUBLIC_API_BASE_URL -> $computed_base" >&2
+    fi
+}
+
 function updateCustomVariables(){
     echo "Updating custom variables..." >&2
     updateEnvFile "DOCKERHUB_USER" "$DOCKERHUB_USER" "$DOCKER_ENV_PATH"
@@ -178,6 +224,7 @@ function syncEnvFile(){
             fi
         done < "$DOCKER_ENV_PATH"
     fi
+    ensureFrontendBaseUrl "$DOCKER_ENV_PATH"
     echo "Environment variables synced successfully" >&2
 }
 

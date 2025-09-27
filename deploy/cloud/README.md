@@ -45,6 +45,7 @@ A dedicated Compose file keeps settings aligned with the published self-host bun
 - Removes bundled Postgres and Redis containers.
 - Injects Neon/Upstash URLs through environment variables (`DATABASE_URL`, `REDIS_URL`, `REDIS_REST_URL`, `REDIS_REST_TOKEN`).
 - Adds health checks so Render/Railway can monitor service status.
+- Sets `NEXT_PUBLIC_API_BASE_URL` dynamically so the frontend calls the API over HTTPS without manual overrides.
 
 You can validate the configuration locally:
 
@@ -63,6 +64,7 @@ Stop the stack with `docker compose ... down` when finished.
    - `REDIS_URL`
    - `REDIS_REST_URL`
    - `REDIS_REST_TOKEN`
+   - `NEXT_PUBLIC_API_BASE_URL` (defaults to `https://<APP_DOMAIN>` when `SSL=true`)
    - Any other secrets listed in `deploy/selfhost/variables.env`
 4. Enable auto-deploy on git push and configure health checks:
    - HTTP health check on `https://<your-domain>/api/health/`

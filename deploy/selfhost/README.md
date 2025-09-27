@@ -148,6 +148,8 @@ Below are the most import keys you must refer to. _<span style="color: #fcba03">
 
 > `WEB_URL` - This is default set to `http://localhost`. Change this to the FQDN you plan to use along with NGINX_PORT (eg. `https://plane.example.com:8080` or `http://[IP-ADDRESS]:8080`)
 
+> `NEXT_PUBLIC_API_BASE_URL` - Managed automatically based on `SSL` and `APP_DOMAIN`. Override only when the Plane API is exposed on a separate hostname.
+
 > `CORS_ALLOWED_ORIGINS` - This is default set to `http://localhost`. Change this to the FQDN you plan to use along with NGINX_PORT (eg. `https://plane.example.com:8080` or `http://[IP-ADDRESS]:8080`)
 
 There are many other settings you can play with, but we suggest you configure `EMAIL SETTINGS` as it will enable you to invite your teammates onto the platform.
