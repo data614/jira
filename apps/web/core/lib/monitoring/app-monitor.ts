@@ -1,6 +1,7 @@
 "use client";
 
-import { captureError } from "@/helpers/event-tracker.helper";
+import { captureError, captureSuccess } from "@/helpers/event-tracker.helper";
+import { PerformanceMetricsCollector, type PerformanceMetricReporter } from "./performance-metrics";
 
 type ErrorContext = Record<string, unknown>;
 
@@ -90,10 +91,22 @@ const reportThroughAnalytics = (
   });
 };
 
+const reportPerformanceMetric: PerformanceMetricReporter = (metric, payload) => {
+  captureSuccess({
+    eventName: "app_monitor_performance",
+    payload: {
+      metric,
+      ...payload,
+    },
+    context: buildRuntimeContext(),
+  });
+};
+
 export class AppMonitor {
   private started = false;
   private removeListeners: Array<() => void> = [];
   private recentErrors = new Map<string, number>();
+  private performanceCollector = new PerformanceMetricsCollector(reportPerformanceMetric);
 
   start(): void {
     if (this.started) return;
@@ -133,10 +146,14 @@ export class AppMonitor {
     this.removeListeners.push(() =>
       window.removeEventListener("unhandledrejection", handleUnhandledRejection)
     );
+
+    this.performanceCollector.start();
   }
 
   stop(): void {
     if (!this.started) return;
+
+    this.performanceCollector.stop();
 
     while (this.removeListeners.length) {
       const remove = this.removeListeners.pop();
