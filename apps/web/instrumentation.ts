@@ -40,7 +40,12 @@ export async function register(): Promise<void> {
     logger.error(
       formatMessage("Unhandled promise rejection detected.", [
         describeNormalizedError(normalized),
-      ])
+      ]),
+      {
+        channel: "server.monitoring",
+        event: "unhandled_rejection",
+        normalized_error: normalized,
+      }
     );
   };
 
@@ -49,14 +54,24 @@ export async function register(): Promise<void> {
     logger.error(
       formatMessage("Uncaught exception detected.", [
         describeNormalizedError(normalized),
-      ])
+      ]),
+      {
+        channel: "server.monitoring",
+        event: "uncaught_exception",
+        normalized_error: normalized,
+      }
     );
   };
 
   const handleWarning = (warning: Error) => {
     const normalized = normalizeError(warning);
     logger.warn(
-      formatMessage("Process warning emitted.", [describeNormalizedError(normalized)])
+      formatMessage("Process warning emitted.", [describeNormalizedError(normalized)]),
+      {
+        channel: "server.monitoring",
+        event: "process_warning",
+        normalized_error: normalized,
+      }
     );
   };
 
@@ -65,7 +80,11 @@ export async function register(): Promise<void> {
       logger.debug(
         formatMessage("Promise rejection handled after being reported.", [
           `promise=${stringifyUnknown(promise)}`,
-        ])
+        ]),
+        {
+          channel: "server.monitoring",
+          event: "rejection_handled",
+        }
       );
     }
   };
@@ -75,5 +94,8 @@ export async function register(): Promise<void> {
   process.on("warning", handleWarning);
   process.on("rejectionHandled", handleRejectionHandled);
 
-  logger.info("Server monitoring hooks registered for Plane Web.");
+  logger.info("Server monitoring hooks registered for Plane Web.", {
+    channel: "server.monitoring",
+    event: "monitoring_registered",
+  });
 }
