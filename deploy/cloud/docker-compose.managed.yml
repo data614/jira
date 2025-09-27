@@ -1,0 +1,208 @@
+version: "3.9"
+
+x-db-env: &db-env
+  DATABASE_URL: ${DATABASE_URL}
+  PGHOST: ${PGHOST:-}
+  PGDATABASE: ${PGDATABASE:-}
+  POSTGRES_USER: ${POSTGRES_USER:-}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+  POSTGRES_DB: ${POSTGRES_DB:-}
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+
+x-redis-env: &redis-env
+  REDIS_URL: ${REDIS_URL}
+  REDIS_REST_URL: ${REDIS_REST_URL:-}
+  REDIS_REST_TOKEN: ${REDIS_REST_TOKEN:-}
+
+x-minio-env: &minio-env
+  MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:-}
+  MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:-}
+
+x-aws-s3-env: &aws-s3-env
+  AWS_REGION: ${AWS_REGION:-}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+  AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL:-}
+  AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-}
+
+x-proxy-env: &proxy-env
+  SSL: ${SSL:-false}
+  APP_DOMAIN: ${APP_DOMAIN:-localhost}
+  FILE_SIZE_LIMIT: ${FILE_SIZE_LIMIT:-5242880}
+  CERT_EMAIL: ${CERT_EMAIL:-}
+  CERT_ACME_CA: ${CERT_ACME_CA:-}
+  CERT_ACME_DNS: ${CERT_ACME_DNS:-}
+  LISTEN_HTTP_PORT: ${LISTEN_PORT:-80}
+  LISTEN_HTTPS_PORT: ${LISTEN_SSL_PORT:-443}
+  BUCKET_NAME: ${AWS_S3_BUCKET_NAME:-uploads}
+  SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+
+x-mq-env: &mq-env
+  RABBITMQ_HOST: ${RABBITMQ_HOST:-plane-mq}
+  RABBITMQ_PORT: ${RABBITMQ_PORT:-5672}
+  RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-plane}
+  RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-plane}
+  RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-plane}
+  RABBITMQ_VHOST: ${RABBITMQ_VHOST:-plane}
+
+x-live-env: &live-env
+  API_BASE_URL: ${API_BASE_URL:-http://api:8000}
+
+x-app-env: &app-env
+  WEB_URL: ${WEB_URL:-http://localhost}
+  DEBUG: ${DEBUG:-0}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+  GUNICORN_WORKERS: 1
+  USE_MINIO: ${USE_MINIO:-1}
+  SECRET_KEY: ${SECRET_KEY:-}
+  AMQP_URL: ${AMQP_URL:-amqp://plane:plane@plane-mq:5672/plane}
+  API_KEY_RATE_LIMIT: ${API_KEY_RATE_LIMIT:-60/minute}
+  MINIO_ENDPOINT_SSL: ${MINIO_ENDPOINT_SSL:-0}
+
+services:
+  web:
+    image: artifacts.plane.so/makeplane/plane-frontend:${APP_RELEASE:-stable}
+    command: node web/server.js web
+    deploy:
+      replicas: ${WEB_REPLICAS:-1}
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      api:
+        condition: service_healthy
+      worker:
+        condition: service_started
+
+  space:
+    image: artifacts.plane.so/makeplane/plane-space:${APP_RELEASE:-stable}
+    command: node space/server.js space
+    deploy:
+      replicas: ${SPACE_REPLICAS:-1}
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      api:
+        condition: service_healthy
+      worker:
+        condition: service_started
+      web:
+        condition: service_started
+
+  admin:
+    image: artifacts.plane.so/makeplane/plane-admin:${APP_RELEASE:-stable}
+    command: node admin/server.js admin
+    deploy:
+      replicas: ${ADMIN_REPLICAS:-1}
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+
+  live:
+    image: artifacts.plane.so/makeplane/plane-live:${APP_RELEASE:-stable}
+    command: node live/dist/server.js live
+    environment:
+      <<: [*live-env]
+    deploy:
+      replicas: ${LIVE_REPLICAS:-1}
+      restart_policy:
+        condition: on-failure
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+
+  api:
+    image: artifacts.plane.so/makeplane/plane-backend:${APP_RELEASE:-stable}
+    command: ./bin/docker-entrypoint-api.sh
+    deploy:
+      replicas: ${API_REPLICAS:-1}
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - logs_api:/code/plane/logs
+    environment:
+      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env, *proxy-env]
+    depends_on:
+      plane-mq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  worker:
+    image: artifacts.plane.so/makeplane/plane-backend:${APP_RELEASE:-stable}
+    command: ./bin/docker-entrypoint-worker.sh
+    deploy:
+      replicas: ${WORKER_REPLICAS:-1}
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - logs_worker:/code/plane/logs
+    environment:
+      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env, *proxy-env]
+    depends_on:
+      api:
+        condition: service_healthy
+      plane-mq:
+        condition: service_healthy
+
+  beat-worker:
+    image: artifacts.plane.so/makeplane/plane-backend:${APP_RELEASE:-stable}
+    command: ./bin/docker-entrypoint-beat.sh
+    deploy:
+      replicas: ${BEAT_WORKER_REPLICAS:-1}
+      restart_policy:
+        condition: on-failure
+    volumes:
+      - logs_beat-worker:/code/plane/logs
+    environment:
+      <<: [*app-env, *db-env, *redis-env, *minio-env, *aws-s3-env, *proxy-env]
+    depends_on:
+      api:
+        condition: service_healthy
+      plane-mq:
+        condition: service_healthy
+
+  plane-mq:
+    image: rabbitmq:3.12-management
+    environment:
+      <<: [*mq-env]
+    volumes:
+      - plane_mq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  plane-proxy:
+    image: artifacts.plane.so/makeplane/plane-proxy:${APP_RELEASE:-stable}
+    environment:
+      <<: [*proxy-env, *aws-s3-env]
+    ports:
+      - "${LISTEN_PORT:-80}:${LISTEN_PORT:-80}"
+      - "${LISTEN_SSL_PORT:-443}:${LISTEN_SSL_PORT:-443}"
+    depends_on:
+      web:
+        condition: service_started
+      space:
+        condition: service_started
+      admin:
+        condition: service_started
+      live:
+        condition: service_started
+
+volumes:
+  logs_api:
+  logs_worker:
+  logs_beat-worker:
+  plane_mq_data:
