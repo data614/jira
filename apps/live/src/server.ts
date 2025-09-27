@@ -1,13 +1,14 @@
 import compression from "compression";
 import cors from "cors";
 import expressWs from "express-ws";
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 // hocuspocus server
 import { getHocusPocusServer } from "@/core/hocuspocus-server.js";
 // helpers
 import { convertHTMLDocumentToAllFormats } from "@/core/helpers/convert-document.js";
 import { logger, manualLogger } from "@/core/helpers/logger.js";
+import { monitoringService } from "@/core/services/monitoring-service.js";
 // types
 import { TConvertDocumentRequestBody } from "@/core/types/common.js";
 
@@ -32,6 +33,24 @@ export class Server {
     this.app.use(helmet());
     // Middleware for response compression
     this.app.use(compression({ level: 6, threshold: 5 * 1000 }));
+    // Monitoring middleware for request lifecycle
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      const start = process.hrtime();
+      res.on("finish", () => {
+        const diff = process.hrtime(start);
+        const durationMs = diff[0] * 1000 + diff[1] / 1e6;
+        monitoringService.trackHttpRequest({
+          method: req.method,
+          path: req.originalUrl || req.url,
+          statusCode: res.statusCode,
+          durationMs,
+        });
+      });
+      res.on("error", (error) => {
+        monitoringService.recordIncident("http:response", error);
+      });
+      next();
+    });
     // Logging middleware
     this.app.use(logger);
     // Body parsing middleware
@@ -45,6 +64,7 @@ export class Server {
   private async setupHocusPocus() {
     this.hocuspocusServer = await getHocusPocusServer().catch((err) => {
       manualLogger.error("Failed to initialize HocusPocusServer:", err);
+      monitoringService.recordIncident("hocuspocus:init", err);
       process.exit(1);
     });
   }
@@ -54,11 +74,16 @@ export class Server {
       res.status(200).json({ status: "OK" });
     });
 
+    this.router.get("/health/metrics", (_req: Request, res: Response) => {
+      res.status(200).json(monitoringService.getSnapshot());
+    });
+
     this.router.ws("/collaboration", (ws: any, req: Request) => {
       try {
         this.hocuspocusServer.handleConnection(ws, req);
       } catch (err) {
         manualLogger.error("WebSocket connection error:", err);
+        monitoringService.recordIncident("websocket:connection", err);
         ws.close();
       }
     });
@@ -82,6 +107,7 @@ export class Server {
         });
       } catch (error) {
         manualLogger.error("Error in /convert-document endpoint:", error);
+        monitoringService.recordIncident("http:convert-document", error);
         res.status(500).send({
           message: `Internal server error. ${error}`,
         });
@@ -96,6 +122,7 @@ export class Server {
   public listen() {
     this.serverInstance = this.app.listen(this.app.get("port"), () => {
       manualLogger.info(`Plane Live server has started at port ${this.app.get("port")}`);
+      monitoringService.setPort(this.app.get("port"));
     });
   }
 
@@ -103,6 +130,7 @@ export class Server {
     // Close the HocusPocus server WebSocket connections
     await this.hocuspocusServer.destroy();
     manualLogger.info("HocusPocus server WebSocket connections closed gracefully.");
+    monitoringService.resetCollaborativeState();
     // Close the Express server
     this.serverInstance.close(() => {
       manualLogger.info("Express server closed gracefully.");
@@ -118,6 +146,7 @@ server.listen();
 process.on("unhandledRejection", async (err: any) => {
   manualLogger.info("Unhandled Rejection: ", err);
   manualLogger.info(`UNHANDLED REJECTION! 💥 Shutting down...`);
+  monitoringService.recordIncident("process:unhandledRejection", err);
   await server.destroy();
 });
 
@@ -125,5 +154,6 @@ process.on("unhandledRejection", async (err: any) => {
 process.on("uncaughtException", async (err: any) => {
   manualLogger.info("Uncaught Exception: ", err);
   manualLogger.info(`UNCAUGHT EXCEPTION! 💥 Shutting down...`);
+  monitoringService.recordIncident("process:uncaughtException", err);
   await server.destroy();
 });
