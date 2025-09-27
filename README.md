@@ -156,7 +156,11 @@ See [CONTRIBUTING](./CONTRIBUTING.md)
 - Automate periodic health checks with [`scripts/monitoring/service_healthcheck.py`](scripts/monitoring/service_healthcheck.py), which wraps the management command and emits structured logs for observability platforms.
 - Follow the [Railway deployment blueprint](docs/deployment/railway.md) when containerizing the Django API with managed backing services—it's aligned with the production Dockerfile and keeps the existing application interface intact.
 - When deploying the Next.js workspace to Netlify, follow the [Netlify deployment guide](docs/deployment/netlify.md) to connect GitHub, target the correct base directory, enforce Node.js 18+, and provision required environment variables without diverging from the current interface.
+
+- Establish daily PostgreSQL snapshots, object storage lifecycle policies, and proactive alerting with the [Backup, Storage, and Monitoring Runbook](docs/operations/backups-and-monitoring.md) to keep production resilient without modifying the application surface area.
+
 - Plan internal rollouts with the [Internal Pilot Runbook](docs/internal-pilot-runbook.md), which outlines how to pilot Plane with 5–10 users, collect actionable feedback, and monitor the stack using existing observability tooling.
+
 
 ## 📝 Documentation
 Explore Plane's [product documentation](https://docs.plane.so/) and [developer documentation](https://developers.plane.so/) to learn about features, setup, and usage.
