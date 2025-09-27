@@ -22,6 +22,7 @@ from django.views import View
 from plane.bgtasks.forgot_password_task import forgot_password
 from plane.license.models import Instance
 from plane.db.models import User
+from plane.license.utils.email_config import is_smtp_configured
 from plane.license.utils.instance_value import get_configuration_value
 from plane.authentication.utils.host import base_host
 from plane.authentication.adapter.error import (
@@ -55,11 +56,17 @@ class ForgotPasswordEndpoint(APIView):
             )
             return Response(exc.get_error_dict(), status=status.HTTP_400_BAD_REQUEST)
 
-        (EMAIL_HOST,) = get_configuration_value(
-            [{"key": "EMAIL_HOST", "default": os.environ.get("EMAIL_HOST")}]
+        (EMAIL_HOST, SENDGRID_API_KEY) = get_configuration_value(
+            [
+                {"key": "EMAIL_HOST", "default": os.environ.get("EMAIL_HOST")},
+                {
+                    "key": "SENDGRID_API_KEY",
+                    "default": os.environ.get("SENDGRID_API_KEY", ""),
+                },
+            ]
         )
 
-        if not (EMAIL_HOST):
+        if not is_smtp_configured(EMAIL_HOST, SENDGRID_API_KEY):
             exc = AuthenticationException(
                 error_message="SMTP_NOT_CONFIGURED",
                 error_code=AUTHENTICATION_ERROR_CODES["SMTP_NOT_CONFIGURED"],

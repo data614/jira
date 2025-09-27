@@ -7,6 +7,7 @@ import string
 
 # Module imports
 from plane.authentication.adapter.credential import CredentialAdapter
+from plane.license.utils.email_config import is_smtp_configured
 from plane.license.utils.instance_value import get_configuration_value
 from plane.settings.redis import redis_instance
 from plane.authentication.adapter.error import (
@@ -20,17 +21,25 @@ class MagicCodeProvider(CredentialAdapter):
     provider = "magic-code"
 
     def __init__(self, request, key, code=None, callback=None):
-        (EMAIL_HOST, ENABLE_MAGIC_LINK_LOGIN) = get_configuration_value(
+        (
+            EMAIL_HOST,
+            ENABLE_MAGIC_LINK_LOGIN,
+            SENDGRID_API_KEY,
+        ) = get_configuration_value(
             [
                 {"key": "EMAIL_HOST", "default": os.environ.get("EMAIL_HOST")},
                 {
                     "key": "ENABLE_MAGIC_LINK_LOGIN",
                     "default": os.environ.get("ENABLE_MAGIC_LINK_LOGIN", "1"),
                 },
+                {
+                    "key": "SENDGRID_API_KEY",
+                    "default": os.environ.get("SENDGRID_API_KEY", ""),
+                },
             ]
         )
 
-        if not (EMAIL_HOST):
+        if not is_smtp_configured(EMAIL_HOST, SENDGRID_API_KEY):
             raise AuthenticationException(
                 error_code=AUTHENTICATION_ERROR_CODES["SMTP_NOT_CONFIGURED"],
                 error_message="SMTP_NOT_CONFIGURED",

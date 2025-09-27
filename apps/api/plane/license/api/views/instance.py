@@ -15,6 +15,7 @@ from plane.db.models import Workspace
 from plane.license.api.permissions import InstanceAdminPermission
 from plane.license.api.serializers import InstanceSerializer
 from plane.license.models import Instance
+from plane.license.utils.email_config import is_smtp_configured
 from plane.license.utils.instance_value import get_configuration_value
 from plane.utils.cache import cache_response, invalidate_cache
 from django.utils.decorators import method_decorator
@@ -60,6 +61,7 @@ class InstanceEndpoint(BaseAPIView):
             LLM_API_KEY,
             IS_INTERCOM_ENABLED,
             INTERCOM_APP_ID,
+            SENDGRID_API_KEY,
         ) = get_configuration_value(
             [
                 {
@@ -124,6 +126,10 @@ class InstanceEndpoint(BaseAPIView):
                     "key": "INTERCOM_APP_ID",
                     "default": os.environ.get("INTERCOM_APP_ID", ""),
                 },
+                {
+                    "key": "SENDGRID_API_KEY",
+                    "default": os.environ.get("SENDGRID_API_KEY", ""),
+                },
             ]
         )
 
@@ -157,7 +163,9 @@ class InstanceEndpoint(BaseAPIView):
         data["file_size_limit"] = float(os.environ.get("FILE_SIZE_LIMIT", 5242880))
 
         # is smtp configured
-        data["is_smtp_configured"] = bool(EMAIL_HOST)
+        data["is_smtp_configured"] = is_smtp_configured(
+            EMAIL_HOST, SENDGRID_API_KEY
+        )
 
         # Intercom settings
         data["is_intercom_enabled"] = IS_INTERCOM_ENABLED == "1"

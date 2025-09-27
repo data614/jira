@@ -152,6 +152,27 @@ Below are the most import keys you must refer to. _<span style="color: #fcba03">
 
 There are many other settings you can play with, but we suggest you configure `EMAIL SETTINGS` as it will enable you to invite your teammates onto the platform.
 
+#### Example: SendGrid SMTP configuration
+
+If you are using SendGrid, Plane can automatically fall back to the recommended SMTP settings as long as an API key is available. Add the following variables to your `plane.env` file:
+
+```
+SENDGRID_API_KEY=<your-sendgrid-api-key>
+SENDGRID_FROM_EMAIL=no-reply@example.com
+```
+
+Optional overrides are also supported:
+
+```
+SENDGRID_SMTP_HOST=smtp.sendgrid.net
+SENDGRID_SMTP_PORT=587
+SENDGRID_SMTP_USERNAME=apikey
+SENDGRID_SMTP_USE_TLS=1
+SENDGRID_SMTP_USE_SSL=0
+```
+
+You can continue to use the existing `EMAIL_HOST`, `EMAIL_HOST_USER`, and related variables if you prefer to manage the SMTP credentials manually—the SendGrid settings are only applied when the standard SMTP host is left blank.
+
 ---
 
 ### Continue with setup - Start Server (Docker Compose)
