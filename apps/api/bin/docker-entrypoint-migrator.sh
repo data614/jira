@@ -1,6 +1,6 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-python manage.py wait_for_db $1
+python manage.py wait_for_db "$@"
 
-python manage.py migrate $1
+exec python manage.py migrate "$@"
