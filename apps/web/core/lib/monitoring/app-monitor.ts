@@ -2,6 +2,11 @@
 
 import { captureError, captureSuccess } from "@/helpers/event-tracker.helper";
 import { type NormalizedError, normalizeError } from "@/lib/monitoring/error-normalizer";
+import {
+  reportNetlifyClientError,
+  reportNetlifyClientMetric,
+  reportNetlifyLifecycleEvent,
+} from "./netlify-reporter";
 import { PerformanceMetricsCollector, type PerformanceMetricReporter } from "./performance-metrics";
 
 type ErrorContext = Record<string, unknown>;
@@ -51,6 +56,12 @@ const reportThroughAnalytics = (
     payload: { severity: "critical", origin: source },
     context: { ...buildRuntimeContext(), ...context },
   });
+  reportNetlifyClientError("app_monitor_error", {
+    error: normalizedError,
+    source,
+    context: { ...buildRuntimeContext(), ...context },
+    payload: { severity: "critical" },
+  });
 };
 
 const reportPerformanceMetric: PerformanceMetricReporter = (metric, payload) => {
@@ -59,6 +70,7 @@ const reportPerformanceMetric: PerformanceMetricReporter = (metric, payload) => 
     payload: { metric, ...payload },
     context: buildRuntimeContext(),
   });
+  reportNetlifyClientMetric(metric, payload, buildRuntimeContext());
 };
 
 export class AppMonitor {
@@ -107,6 +119,8 @@ export class AppMonitor {
     this.installLongTaskObserver();
 
     this.performanceCollector.start();
+
+    reportNetlifyLifecycleEvent("app_monitor_started", buildRuntimeContext());
   }
 
   stop(): void {
@@ -117,6 +131,8 @@ export class AppMonitor {
     } catch {
       // ignore
     }
+
+    reportNetlifyLifecycleEvent("app_monitor_stopped", buildRuntimeContext());
 
     while (this.removeListeners.length) {
       const remove = this.removeListeners.pop();
@@ -212,6 +228,17 @@ export class AppMonitor {
             startTime: entry.startTime,
             threshold: LONG_TASK_THRESHOLD,
           });
+          reportNetlifyClientMetric(
+            "long_task_detected",
+            {
+              duration,
+              entryType: entry.entryType,
+              name: entry.name,
+              startTime: entry.startTime,
+              threshold: LONG_TASK_THRESHOLD,
+            },
+            buildRuntimeContext()
+          );
         }
       });
 
