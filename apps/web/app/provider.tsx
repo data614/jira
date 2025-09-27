@@ -18,6 +18,7 @@ import "@/lib/polyfills";
 import { StoreProvider } from "@/lib/store-context";
 // wrappers
 import { InstanceWrapper } from "@/lib/wrappers";
+import { MonitoringProvider } from "@/lib/monitoring";
 // dynamic imports
 const StoreWrapper = dynamic(() => import("@/lib/wrappers/store-wrapper"), { ssr: false });
 const PostHogProvider = dynamic(() => import("@/lib/posthog-provider"), { ssr: false });
@@ -46,7 +47,9 @@ export const AppProvider: FC<IAppProvider> = (props) => {
               <InstanceWrapper>
                 <IntercomProvider>
                   <PostHogProvider>
-                    <SWRConfig value={WEB_SWR_CONFIG}>{children}</SWRConfig>
+                    <MonitoringProvider>
+                      <SWRConfig value={WEB_SWR_CONFIG}>{children}</SWRConfig>
+                    </MonitoringProvider>
                   </PostHogProvider>
                 </IntercomProvider>
               </InstanceWrapper>
