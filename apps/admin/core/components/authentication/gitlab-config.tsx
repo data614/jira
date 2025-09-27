@@ -23,6 +23,7 @@ export const GitlabConfiguration: React.FC<Props> = observer((props) => {
   const { formattedConfig } = useInstance();
   // derived values
   const enableGitlabConfig = formattedConfig?.IS_GITLAB_ENABLED ?? "";
+  const isGitlabEnabled = Boolean(parseInt(enableGitlabConfig));
   const isGitlabConfigured = !!formattedConfig?.GITLAB_CLIENT_ID && !!formattedConfig?.GITLAB_CLIENT_SECRET;
 
   return (
@@ -33,11 +34,9 @@ export const GitlabConfiguration: React.FC<Props> = observer((props) => {
             Edit
           </Link>
           <ToggleSwitch
-            value={Boolean(parseInt(enableGitlabConfig))}
+            value={isGitlabEnabled}
             onChange={() => {
-              Boolean(parseInt(enableGitlabConfig)) === true
-                ? updateConfig("IS_GITLAB_ENABLED", "0")
-                : updateConfig("IS_GITLAB_ENABLED", "1");
+              updateConfig("IS_GITLAB_ENABLED", isGitlabEnabled ? "0" : "1");
             }}
             size="sm"
             disabled={disabled}

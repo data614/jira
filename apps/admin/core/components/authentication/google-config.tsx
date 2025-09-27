@@ -23,6 +23,7 @@ export const GoogleConfiguration: React.FC<Props> = observer((props) => {
   const { formattedConfig } = useInstance();
   // derived values
   const enableGoogleConfig = formattedConfig?.IS_GOOGLE_ENABLED ?? "";
+  const isGoogleEnabled = Boolean(parseInt(enableGoogleConfig));
   const isGoogleConfigured = !!formattedConfig?.GOOGLE_CLIENT_ID && !!formattedConfig?.GOOGLE_CLIENT_SECRET;
 
   return (
@@ -33,11 +34,9 @@ export const GoogleConfiguration: React.FC<Props> = observer((props) => {
             Edit
           </Link>
           <ToggleSwitch
-            value={Boolean(parseInt(enableGoogleConfig))}
+            value={isGoogleEnabled}
             onChange={() => {
-              Boolean(parseInt(enableGoogleConfig)) === true
-                ? updateConfig("IS_GOOGLE_ENABLED", "0")
-                : updateConfig("IS_GOOGLE_ENABLED", "1");
+              updateConfig("IS_GOOGLE_ENABLED", isGoogleEnabled ? "0" : "1");
             }}
             size="sm"
             disabled={disabled}

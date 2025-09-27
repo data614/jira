@@ -23,6 +23,7 @@ export const GithubConfiguration: React.FC<Props> = observer((props) => {
   const { formattedConfig } = useInstance();
   // derived values
   const enableGithubConfig = formattedConfig?.IS_GITHUB_ENABLED ?? "";
+  const isGithubEnabled = Boolean(parseInt(enableGithubConfig));
   const isGithubConfigured = !!formattedConfig?.GITHUB_CLIENT_ID && !!formattedConfig?.GITHUB_CLIENT_SECRET;
 
   return (
@@ -33,11 +34,9 @@ export const GithubConfiguration: React.FC<Props> = observer((props) => {
             Edit
           </Link>
           <ToggleSwitch
-            value={Boolean(parseInt(enableGithubConfig))}
+            value={isGithubEnabled}
             onChange={() => {
-              Boolean(parseInt(enableGithubConfig)) === true
-                ? updateConfig("IS_GITHUB_ENABLED", "0")
-                : updateConfig("IS_GITHUB_ENABLED", "1");
+              updateConfig("IS_GITHUB_ENABLED", isGithubEnabled ? "0" : "1");
             }}
             size="sm"
             disabled={disabled}

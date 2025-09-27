@@ -1,19 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { Controller, Control } from "react-hook-form";
+import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
 // icons
 import { Eye, EyeOff } from "lucide-react";
 // plane internal packages
 import { Input } from "@plane/ui";
 import { cn } from "@plane/utils";
 
-type Props = {
-  control: Control<any>;
+type ControllerInputProps<TFieldValues extends FieldValues> = {
+  control: Control<TFieldValues>;
   type: "text" | "password";
-  name: string;
+  name: Path<TFieldValues>;
   label: string;
-  description?: string | JSX.Element;
+  description?: React.ReactNode;
   placeholder: string;
   error: boolean;
   required: boolean;
@@ -23,14 +23,22 @@ export type TControllerInputFormField = {
   key: string;
   type: "text" | "password";
   label: string;
-  description?: string | JSX.Element;
+  description?: React.ReactNode;
   placeholder: string;
   error: boolean;
   required: boolean;
 };
 
-export const ControllerInput: React.FC<Props> = (props) => {
-  const { name, control, type, label, description, placeholder, error, required } = props;
+export const ControllerInput = <TFieldValues extends FieldValues>({
+  name,
+  control,
+  type,
+  label,
+  description,
+  placeholder,
+  error,
+  required,
+}: ControllerInputProps<TFieldValues>) => {
   // states
   const [showPassword, setShowPassword] = useState(false);
 

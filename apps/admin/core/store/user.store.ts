@@ -6,6 +6,11 @@ import { IUser } from "@plane/types";
 // root store
 import { CoreRootStore } from "@/store/root.store";
 
+type ServiceError = { status?: number; message?: string };
+
+const isServiceError = (error: unknown): error is ServiceError =>
+  typeof error === "object" && error !== null && ("status" in error || "message" in error);
+
 export interface IUserStore {
   // observables
   isLoading: boolean;
@@ -13,7 +18,7 @@ export interface IUserStore {
   isUserLoggedIn: boolean | undefined;
   currentUser: IUser | undefined;
   // fetch actions
-  hydrate: (data: any) => void;
+  hydrate: (data: IUser | undefined) => void;
   fetchCurrentUser: () => Promise<IUser>;
   reset: () => void;
   signOut: () => void;
@@ -26,8 +31,8 @@ export class UserStore implements IUserStore {
   isUserLoggedIn: boolean | undefined = undefined;
   currentUser: IUser | undefined = undefined;
   // services
-  userService;
-  authService;
+  private readonly userService: UserService;
+  private readonly authService: AuthService;
 
   constructor(private store: CoreRootStore) {
     makeObservable(this, {
@@ -45,7 +50,7 @@ export class UserStore implements IUserStore {
     this.authService = new AuthService();
   }
 
-  hydrate = (data: any) => {
+  hydrate = (data?: IUser) => {
     if (data) this.currentUser = data;
   };
 
@@ -72,18 +77,19 @@ export class UserStore implements IUserStore {
         });
       }
       return currentUser;
-    } catch (error: any) {
+    } catch (error) {
       this.isLoading = false;
       this.isUserLoggedIn = false;
-      if (error.status === 403)
+      const message = isServiceError(error) && typeof error.message === "string" ? error.message : "";
+      if (isServiceError(error) && error.status === 403)
         this.userStatus = {
           status: EUserStatus.AUTHENTICATION_NOT_DONE,
-          message: error?.message || "",
+          message,
         };
       else
         this.userStatus = {
           status: EUserStatus.ERROR,
-          message: error?.message || "",
+          message,
         };
       throw error;
     }

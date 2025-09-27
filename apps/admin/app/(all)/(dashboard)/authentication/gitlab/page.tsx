@@ -21,6 +21,7 @@ const InstanceGitlabAuthenticationPage = observer(() => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   // config
   const enableGitlabConfig = formattedConfig?.IS_GITLAB_ENABLED ?? "";
+  const isGitlabEnabled = Boolean(parseInt(enableGitlabConfig));
 
   useSWR("INSTANCE_CONFIGURATIONS", () => fetchInstanceConfigurations());
 
@@ -64,11 +65,9 @@ const InstanceGitlabAuthenticationPage = observer(() => {
             icon={<Image src={GitlabLogo} height={24} width={24} alt="GitLab Logo" />}
             config={
               <ToggleSwitch
-                value={Boolean(parseInt(enableGitlabConfig))}
+                value={isGitlabEnabled}
                 onChange={() => {
-                  Boolean(parseInt(enableGitlabConfig)) === true
-                    ? updateConfig("IS_GITLAB_ENABLED", "0")
-                    : updateConfig("IS_GITLAB_ENABLED", "1");
+                  updateConfig("IS_GITLAB_ENABLED", isGitlabEnabled ? "0" : "1");
                 }}
                 size="sm"
                 disabled={isSubmitting || !formattedConfig}

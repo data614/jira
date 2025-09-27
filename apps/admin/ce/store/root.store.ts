@@ -9,7 +9,7 @@ export class RootStore extends CoreRootStore {
     super();
   }
 
-  hydrate(initialData: any) {
+  hydrate(initialData: Parameters<CoreRootStore["hydrate"]>[0]) {
     super.hydrate(initialData);
   }
 

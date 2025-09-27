@@ -7,6 +7,13 @@ import { IWorkspaceStore, WorkspaceStore } from "./workspace.store";
 
 enableStaticRendering(typeof window === "undefined");
 
+type HydrationData = {
+  theme?: Parameters<IThemeStore["hydrate"]>[0];
+  instance?: Parameters<IInstanceStore["hydrate"]>[0];
+  user?: Parameters<IUserStore["hydrate"]>[0];
+  workspace?: Parameters<IWorkspaceStore["hydrate"]>[0];
+};
+
 export abstract class CoreRootStore {
   theme: IThemeStore;
   instance: IInstanceStore;
@@ -20,7 +27,7 @@ export abstract class CoreRootStore {
     this.workspace = new WorkspaceStore(this);
   }
 
-  hydrate(initialData: any) {
+  hydrate(initialData: HydrationData) {
     this.theme.hydrate(initialData.theme);
     this.instance.hydrate(initialData.instance);
     this.user.hydrate(initialData.user);
