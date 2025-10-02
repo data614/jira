@@ -1,0 +1,121 @@
+import { NodeType, parse, } from 'node-html-parser';
+import cssTree from 'css-tree';
+const { generate, parse: cssParse } = cssTree;
+import supportedStyles from './supportedStyles.js';
+import camelize from './camelize.js';
+export const convertRule = (rule, source = 'style') => {
+    const declarations = rule.children
+        .filter((declaration) => declaration.type === 'Declaration')
+        .toArray();
+    return declarations
+        .map((entry) => ({
+        ...entry,
+        property: camelize(entry.property),
+    }))
+        .reduce((style, { property, value }) => {
+        let valueString = generate(value);
+        if (property && value) {
+            if (property === 'fontFamily') {
+                valueString = valueString.replace(/["']+/g, '').split(',');
+            }
+            else if (!supportedStyles.includes(property)) {
+                if ((property === 'background' &&
+                    /^#?[a-zA-Z0-9]+$/.test(valueString)) ||
+                    /^rgba?\([0-9, ]+\)$/i.test(valueString) ||
+                    /^hsla?\([0-9.%, ]+\)$/i.test(valueString)) {
+                    property = 'backgroundColor';
+                }
+                else {
+                    console.warn(`${source}: Found unsupported style "${property}"`, {
+                        property,
+                        value,
+                    });
+                }
+            }
+            style[property] = valueString;
+        }
+        return style;
+    }, {});
+};
+export const convertStylesheet = (stylesheet) => {
+    const response = {};
+    try {
+        const parsed = cssParse(stylesheet);
+        const rules = parsed.children.filter((rule) => rule.type === 'Rule' && rule.prelude?.type === 'SelectorList');
+        rules.forEach((rule) => {
+            const style = convertRule(rule.block);
+            if (rule.prelude.type !== 'SelectorList') {
+                return;
+            }
+            rule.prelude.children.forEach((selector) => {
+                const selectorString = generate(selector);
+                if (selectorString.includes('::')) {
+                    // skip pseudo-elements
+                    return;
+                }
+                response[selectorString] = style;
+            });
+        });
+    }
+    catch (e) {
+        console.error(`Error parsing stylesheet: "${stylesheet}"`, e);
+    }
+    return response;
+};
+export const convertElementStyle = (styleAttr, tag) => {
+    try {
+        const parsed = cssParse(`${tag} { ${styleAttr} }`);
+        const rules = parsed.children.filter((rule) => rule.type === 'Rule' && rule.prelude?.type === 'SelectorList');
+        const firstRule = rules?.first();
+        return firstRule ? convertRule(firstRule.block, tag) : undefined;
+    }
+    catch (e) {
+        console.error(`Error parsing style attribute "${styleAttr}" for tag: ${tag}`, e);
+    }
+};
+export const convertNode = (node) => {
+    if (node.nodeType === NodeType.TEXT_NODE) {
+        return node.rawText;
+    }
+    if (node.nodeType === NodeType.COMMENT_NODE) {
+        return '';
+    }
+    if (node.nodeType !== NodeType.ELEMENT_NODE) {
+        throw new Error('Not sure what this is');
+    }
+    const html = node;
+    const content = html.childNodes.map(convertNode);
+    const kindCounters = {};
+    content.forEach((child) => {
+        if (typeof child !== 'string') {
+            child.indexOfType =
+                child.tag in kindCounters
+                    ? (kindCounters[child.tag] = kindCounters[child.tag] + 1)
+                    : (kindCounters[child.tag] = 0);
+        }
+    });
+    let style;
+    if (html.attributes.style && html.attributes.style.trim()) {
+        style = convertElementStyle(html.attributes.style, html.tagName);
+    }
+    return Object.assign(html, {
+        tag: (html.tagName || '').toLowerCase(),
+        style: style ? [style] : [],
+        content,
+        indexOfType: 0,
+    });
+};
+const parseHtml = (text) => {
+    const html = parse(text, { comment: false });
+    const stylesheets = html
+        .querySelectorAll('style')
+        .map((styleNode) => styleNode.childNodes.map((textNode) => textNode.rawText.trim()).join('\n'))
+        .filter((styleText) => !!styleText)
+        .map(convertStylesheet);
+    return {
+        stylesheets,
+        rootElement: convertNode(html),
+    };
+};
+export default parseHtml;
+//# sourceMappingURL=parse.js.map

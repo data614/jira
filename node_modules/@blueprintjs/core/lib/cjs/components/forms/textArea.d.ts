@@ -1,0 +1,46 @@
+import * as React from "react";
+import { AbstractPureComponent2 } from "../../common";
+import { IntentProps, Props } from "../../common/props";
+export declare type TextAreaProps = ITextAreaProps;
+/** @deprecated use TextAreaProps */
+export interface ITextAreaProps extends IntentProps, Props, React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+    /**
+     * Whether the text area should take up the full width of its container.
+     */
+    fill?: boolean;
+    /**
+     * Whether the text area should appear with large styling.
+     */
+    large?: boolean;
+    /**
+     * Whether the text area should appear with small styling.
+     */
+    small?: boolean;
+    /**
+     * Whether the text area should automatically grow vertically to accomodate content.
+     */
+    growVertically?: boolean;
+    /**
+     * Ref handler that receives HTML `<textarea>` element backing this component.
+     */
+    inputRef?: React.Ref<HTMLTextAreaElement>;
+}
+export interface TextAreaState {
+    height?: number;
+}
+/**
+ * Text area component.
+ *
+ * @see https://blueprintjs.com/docs/#core/components/text-inputs.text-area
+ */
+export declare class TextArea extends AbstractPureComponent2<TextAreaProps, TextAreaState> {
+    static displayName: string;
+    state: TextAreaState;
+    textareaElement: HTMLTextAreaElement | null;
+    private handleRef;
+    private maybeSyncHeightToScrollHeight;
+    componentDidMount(): void;
+    componentDidUpdate(prevProps: TextAreaProps): void;
+    render(): JSX.Element;
+    private handleChange;
+}

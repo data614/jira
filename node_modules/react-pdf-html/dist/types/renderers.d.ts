@@ -1,0 +1,15 @@
+import * as React from 'react';
+import { HtmlRenderer, HtmlRenderers, WrapperRenderer } from './render.js';
+import { HtmlElement } from './parse.js';
+export declare const renderNoop: HtmlRenderer;
+export declare const renderPassThrough: React.FC<React.PropsWithChildren<any>>;
+export declare function toRoman(num: number): string;
+export declare const renderSvgs: WrapperRenderer;
+export declare const renderBlock: HtmlRenderer;
+export declare const renderInline: HtmlRenderer;
+export declare const childElements: (element: HtmlElement, tagNames?: string[]) => HtmlElement[];
+export declare const getRows: (table: HtmlElement) => HtmlElement[];
+export declare const getMaxColumns: (table: HtmlElement) => number;
+export declare const renderCell: HtmlRenderer;
+declare const renderers: HtmlRenderers;
+export default renderers;
